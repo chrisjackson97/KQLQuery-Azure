@@ -3,7 +3,6 @@ securityresources
 | where name == "CloudPosture"
 | where properties["freeTrialRemainingTime"] == "PT0S"
 | where properties["pricingTier"] ==  "Free"
-//| project subscriptionId, properties
 | join kind = leftouter(securityresources 
 | where type == "microsoft.security/pricings"
 | where name == "CloudPosture"
