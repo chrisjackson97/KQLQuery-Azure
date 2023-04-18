@@ -1,11 +1,12 @@
-securityresources 
-| where type == "microsoft.security/pricings"
-| where name == "CloudPosture"
-| where properties["freeTrialRemainingTime"] == "PT0S"
-| where properties["pricingTier"] ==  "Free"
-| join kind = leftouter(securityresources 
-| where type == "microsoft.security/pricings"
-| where name == "CloudPosture"
-|extend tolower(properties["freeTrialRemainingTime"])
-|extend tolower(properties["pricingTier"])) on subscriptionId
-|project subscriptionId,TimeRemaining= Column1,PricingTier=Column2
+securityresources 
+| where type == "microsoft.security/pricings"
+| where name == "CloudPosture"
+| where properties["freeTrialRemainingTime"] == "PT0S"
+| where properties["pricingTier"] != ""
+| join kind = leftouter(securityresources 
+| where type == "microsoft.security/pricings"
+| where name == "CloudPosture"
+|extend tolower(properties["freeTrialRemainingTime"])
+|extend tolower(properties["pricingTier"])) on subscriptionId
+|project subscriptionId,TimeRemaining= Column1,PricingTier=Column2
+| summarize Count=count() by PricingTier
