@@ -1,0 +1,27 @@
+// Date: 01-20-2026
+// Author: Christopher M. Jackson
+// Occupation: Sr. Azure Cloud Engineer- Networks ESME 
+// Company: Microsoft
+
+// Intent of the Following Query: The intent of the following KQL Query is to identify case owners of long running cases within the SME field of Networking to quickly identify if any further support is needed by fellow teams, or if there are other concerns blocking case resolution.
+
+let selectedUser = _SelectedUser; //Allows input parameter for user to be based on UI vs. hard coded in the query 
+let selectedCustomers = _SelectedCustomer; //allows input parameter to customer to be based on UI vs. hard coded in the query
+//Cluster Reference:'<Enter your cluster reference for database cluster and table values here>- scrubbed to remove sensitive identifiers within the query: public view'
+IncidentsSnapshotV2 //Target table within database cluster to further identify following data
+| where CreateDate between (_startTime.._endTime) //Allows input parameter for date/time based on UI vs. hard coded in query
+| where OwningTeamId == "Enter Team Identifier here" // OwningTeamName column contains 'AZURECXPACE ESME-Networking' in this example for alignment to OwningTeamId 
+| where datetime_diff('hour', MitigateDate, CreateDate) >= 6 //ESME-Networks TTMS- Long Case Time Standard is >= 6h 
+| where IsNoise == false //Filtering out cases flagged as noise by individual contributors
+| where Severity <= 2 //TTM guideline metric set for Sev 1 and Sev 2 cases only
+| extend OwningContactAlias = iif(OwningContactAlias =='', 'No Case Owner', OwningContactAlias) //Replacing blanks within column
+| summarize LongRunningCases = count() by OwningContactAlias //Taking total count of long running cases by way of each team member within ESME-Networks group based upon the conditions above that the case mitigation time was greater than 6 hours
+// The next following lines of code are to create a union of the table summarized count-LongRunningCases above and a projection of other target columns within the original table IncidentsSnapshotV2 to accurately identify items such as Title of Case, Customer Name, Source Incident ID, Date of which case was created as well as mitigated, and status of the case. This can be later used to render a barchart for visualization purposes that support quicker data interpretation.
+| union (
+    IncidentsSnapshotV2
+    | where CreateDate between (_startTime.._endTime) 
+    | where OwningTeamId == 103764 // OwningTeamName contains 'AZURECXPACE ESME-Networking' 
+    | where datetime_diff('hour', MitigateDate, ImpactStartDate) >= 6 //ESME-Networks TTMS- Long Case Time Standard is >= 6h
+    | extend OwningContactAlias = iif(OwningContactAlias =='', 'No Case Owner', OwningContactAlias)
+    | project IncidentId,Title,CustomerName, OwningContactAlias, SourceIncidentId,RoutingId,OwningTeamName,Status,SourceCreateDate,CreateDate,ModifiedDate,OwningTenantPublicId, ImpactStartDate, MitigateDate
+)
